@@ -60,24 +60,33 @@ export const getAllUsers = async (req, res, next) => {
 
 export const setAvatar = async (req, res, next) => {
    try {
-      const userId = req.params.id;
-      const avatarImage = req.body.image;
-      const userData = await User.findByIdAndUpdate(
-         userId,
-         {
-            isAvatarImageSet: true,
-            avatarImage,
-         },
-         { new: true }
-      );
-      return res.json({
-         isSet: userData.isAvatarImageSet,
-         image: userData.avatarImage,
-      });
+     const userId = req.params.id;
+     const userData = await User.findById(userId);
+ 
+     if (!userData) {
+       return res.status(404).json({ error: "User not found" });
+     }
+ 
+     if (!userData.username) {
+       return res.status(400).json({ error: "Username is required to set an avatar" });
+     }
+ 
+     const firstInitial = userData.username.charAt(0).toUpperCase();
+ 
+     userData.avatarImage = firstInitial;
+     userData.isAvatarImageSet = true;
+ 
+     await userData.save();
+ 
+     return res.json({
+       isSet: true,
+       image: firstInitial,
+     });
    } catch (ex) {
-      next(ex);
+     next(ex);
    }
-};
+ };
+ 
 
 export const logOut = (req, res, next) => {
    try {
