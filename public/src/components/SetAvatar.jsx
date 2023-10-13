@@ -7,6 +7,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 import { setAvatarRoute } from "../utils/APIRoutes";
+
 export default function SetAvatar() {
   const api = `https://api.multiavatar.com/4645646`;
   const navigate = useNavigate();
@@ -21,49 +22,59 @@ export default function SetAvatar() {
     theme: "dark",
   };
 
-  useEffect(async () => {
-    if (!localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY))
+  useEffect(() => {
+    if (!localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)) {
       navigate("/login");
-  }, []);
+    }
+  }, [navigate]);
 
-  const setProfilePicture = async () => {
+  const setProfilePicture = () => {
     if (selectedAvatar === undefined) {
       toast.error("Please select an avatar", toastOptions);
     } else {
-      const user = await JSON.parse(
+      const user = JSON.parse(
         localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
       );
 
-      const { data } = await axios.post(`${setAvatarRoute}/${user._id}`, {
+      axios.post(`${setAvatarRoute}/${user._id}`, {
         image: avatars[selectedAvatar],
-      });
-
-      if (data.isSet) {
-        user.isAvatarImageSet = true;
-        user.avatarImage = data.image;
-        localStorage.setItem(
-          process.env.REACT_APP_LOCALHOST_KEY,
-          JSON.stringify(user)
-        );
-        navigate("/");
-      } else {
+      })
+      .then((response) => {
+        const data = response.data;
+        if (data.isSet) {
+          user.isAvatarImageSet = true;
+          user.avatarImage = data.image;
+          localStorage.setItem(
+            process.env.REACT_APP_LOCALHOST_KEY,
+            JSON.stringify(user)
+          );
+          navigate("/");
+        } else {
+          toast.error("Error setting avatar. Please try again.", toastOptions);
+        }
+      })
+      .catch((error) => {
         toast.error("Error setting avatar. Please try again.", toastOptions);
-      }
+      });
     }
   };
 
-  useEffect(async () => {
-    const data = [];
-    for (let i = 0; i < 4; i++) {
-      const image = await axios.get(
-        `${api}/${Math.round(Math.random() * 1000)}`
-      );
-      const buffer = new Buffer(image.data);
-      data.push(buffer.toString("base64"));
+  useEffect(() => {
+    async function fetchAvatars() {
+      const data = [];
+      for (let i = 0; i < 4; i++) {
+        const image = await axios.get(
+          `${api}/${Math.round(Math.random() * 1000)}`
+        );
+        const buffer = new Buffer(image.data);
+        data.push(buffer.toString("base64"));
+      }
+      setAvatars(data);
+      setIsLoading(false);
     }
-    setAvatars(data);
-    setIsLoading(false);
+    fetchAvatars();
   }, []);
+
   return (
     <>
       {isLoading ? (
@@ -82,12 +93,12 @@ export default function SetAvatar() {
                   className={`avatar ${
                     selectedAvatar === index ? "selected" : ""
                   }`}
+                  key={avatar}
+                  onClick={() => setSelectedAvatar(index)}
                 >
                   <img
                     src={`data:image/svg+xml;base64,${avatar}`}
                     alt="avatar"
-                    key={avatar}
-                    onClick={() => setSelectedAvatar(index)}
                   />
                 </div>
               );
